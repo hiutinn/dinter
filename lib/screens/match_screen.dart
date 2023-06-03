@@ -12,16 +12,21 @@ class MatchScreen extends StatefulWidget {
 }
 
 class _MatchScreenState extends State<MatchScreen> {
-  List<MatchModel> likes = [];
+  late List<MatchModel> likes;
+  late Stream<List<MatchModel>> likesStream;
   late List<MatchModel> matchedList;
   late Stream<List<MatchModel>> matchesStream;
 
   final MatchService matchService = MatchService();
-  void getLikes() async {
-    List<MatchModel> likesList = await matchService.getUserLikes();
-    setState(() {
-      likes.addAll(likesList);
-    });
+  // void getLikes() async {
+  //   List<MatchModel> likesList = await matchService.getUserLikes();
+  //   setState(() {
+  //     likes.addAll(likesList);
+  //   });
+  // }
+
+  void getLikesStream() async {
+    likesStream = matchService.getUserLikesStream();
   }
 
   void getMatchesStream() async {
@@ -31,8 +36,9 @@ class _MatchScreenState extends State<MatchScreen> {
   @override
   void initState() {
     super.initState();
-    getLikes();
+    // getLikes();
     getMatchesStream();
+    getLikesStream();
   }
 
   @override
@@ -60,18 +66,35 @@ class _MatchScreenState extends State<MatchScreen> {
                 ),
                 SizedBox(
                   height: 100,
-                  child: ListView.builder(
-                    itemCount: likes.length,
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) => GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => ProfileScreen(
-                                    userId: likes[index].user!.id,
-                                  )));
-                        },
-                        child: SmallUserCard(user: likes[index].user!)),
-                  ),
+                  child: StreamBuilder(
+                      stream: likesStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        }
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+
+                        List<MatchModel> updatedLikes = snapshot.data!;
+                        // Update the messages list
+                        likes = updatedLikes;
+                        return ListView.builder(
+                          itemCount: likes.length,
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) => GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => ProfileScreen(
+                                          userId: likes[index].user!.id,
+                                        )));
+                              },
+                              child: SmallUserCard(user: likes[index].user!)),
+                        );
+                      }),
                 ),
                 Text(
                   "Tin nhắn",

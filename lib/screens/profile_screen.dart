@@ -1,8 +1,7 @@
 import 'package:dinter/constants/colors.dart';
 import 'package:dinter/screens/edit_profile_screen.dart';
 import 'package:dinter/screens/login_screen.dart';
-import 'package:dinter/services/auth_service.dart';
-import 'package:dinter/services/user_service.dart';
+import 'package:dinter/services/services.dart';
 import 'package:dinter/widgets/choice_button.dart';
 import 'package:flutter/material.dart';
 
@@ -23,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   User? user;
   bool isCurrentUser = false;
   final UserService userService = UserService();
+  final MatchService matchService = MatchService();
   final AuthService authService = AuthService();
   void getUser() async {
     await userService.getUserById(widget.userId).then((u) => setState(() {
@@ -157,7 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisSize: MainAxisSize.max,
                       children: [
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.of(context).pop();
+                          },
                           child: const ChoiceButton(
                             width: 80,
                             height: 80,
@@ -167,7 +169,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () async {},
+                          onTap: () async {
+                            await matchService
+                                .like(user!)
+                                .then((value) => Navigator.of(context).pop());
+                          },
                           child: const ChoiceButton(
                             width: 80,
                             height: 80,

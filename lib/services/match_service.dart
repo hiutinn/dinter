@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dinter/models/models.dart';
 import 'package:dinter/services/services.dart';
@@ -61,6 +63,33 @@ class MatchService {
     }
 
     return userLikes;
+  }
+
+  Stream<List<MatchModel>> getUserLikesStream() {
+    StreamController<List<MatchModel>> controller =
+        StreamController<List<MatchModel>>();
+
+    userService
+        .getUserById(AuthService().currentUser!.uid)
+        .then((currentUser) async {
+      final QuerySnapshot querySnapshot = await matchRef
+          .where("secondUser", isEqualTo: currentUser.toJson())
+          .where("isMatch", isEqualTo: false)
+          .get();
+
+      List<MatchModel> userLikes = [];
+      if (querySnapshot.docs.isNotEmpty) {
+        userLikes = querySnapshot.docs
+            .map((doc) => MatchModel.fromFirestore(doc))
+            .toList();
+      }
+
+      controller.add(userLikes);
+    }).catchError((error) {
+      controller.addError(error);
+    });
+
+    return controller.stream;
   }
 
   Stream<List<MatchModel>> getMatchedListStream() {
