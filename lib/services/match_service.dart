@@ -10,6 +10,7 @@ class MatchService {
 
   UserService userService = UserService();
 
+  // Like use khác (tim)
   Future like(User user) async {
     final QuerySnapshot querySnapshot = await matchRef.get();
     bool check = true;
@@ -47,24 +48,23 @@ class MatchService {
     }
   }
 
-  Future<List<MatchModel>> getUserLikes() async {
-    List<MatchModel> userLikes = [];
-    User currentUser =
-        await userService.getUserById(AuthService().currentUser!.uid);
+  Future<void> unmatch(User user) async {
+    final QuerySnapshot querySnapshot = await matchRef.get();
+    List<MatchModel> matches =
+        querySnapshot.docs.map((doc) => MatchModel.fromFirestore(doc)).toList();
 
-    final QuerySnapshot querySnapshot = await matchRef
-        .where("secondUser", isEqualTo: currentUser.toJson())
-        .where("isMatch", isEqualTo: false)
-        .get();
-    if (querySnapshot.docs.isNotEmpty) {
-      userLikes = querySnapshot.docs
-          .map((doc) => MatchModel.fromFirestore(doc))
-          .toList();
+    for (MatchModel match in matches) {
+      if ((match.user!.id == user.id &&
+              match.secondUser!.id == AuthService().currentUser!.uid) ||
+          (match.secondUser!.id == user.id &&
+              match.user!.id == AuthService().currentUser!.uid)) {
+        await matchRef.doc(match.id).delete();
+        break;
+      }
     }
-
-    return userLikes;
   }
 
+  // Lấy danh sách các user đã like mình
   Stream<List<MatchModel>> getUserLikesStream() {
     StreamController<List<MatchModel>> controller =
         StreamController<List<MatchModel>>();
@@ -92,6 +92,7 @@ class MatchService {
     return controller.stream;
   }
 
+  // Lấy danh sách đã match
   Stream<List<MatchModel>> getMatchedListStream() {
     return matchRef.where('isMatch', isEqualTo: true).snapshots().map(
         (querySnapshot) => querySnapshot.docs
@@ -102,6 +103,23 @@ class MatchService {
             .toList());
   }
 
+  // Check matched
+  Future<bool> isMatched(String userId) async {
+    List<MatchModel> matches = [];
+    QuerySnapshot querySnapshot_1 =
+        await matchRef.where("isMatch", isEqualTo: true).get();
+    matches = querySnapshot_1.docs
+        .map((doc) => MatchModel.fromFirestore(doc))
+        .where((match) =>
+            (match.user!.id == AuthService().currentUser!.uid ||
+                match.secondUser!.id == AuthService().currentUser!.uid) &&
+            (match.user!.id == userId || match.secondUser!.id == userId))
+        .toList();
+    print(matches.isNotEmpty && userId != AuthService().currentUser!.uid);
+    return matches.isNotEmpty && userId != AuthService().currentUser!.uid;
+  }
+
+  // Lấy danh sách tin nhắn
   Stream<List<Message>> getMessagesStream(String matchId) {
     return matchRef.doc(matchId).snapshots().map((documentSnapshot) {
       MatchModel match = MatchModel.fromFirestore(documentSnapshot);
@@ -109,6 +127,7 @@ class MatchService {
     });
   }
 
+  // Gửi tin nhắn
   Future sendMessage(
       MatchModel match, String receiverId, String content) async {
     Message newMessage = Message(DateTime.now().toString(),

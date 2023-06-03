@@ -21,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   User? user;
   bool isCurrentUser = false;
+  bool isMatched = true;
   final UserService userService = UserService();
   final MatchService matchService = MatchService();
   final AuthService authService = AuthService();
@@ -28,7 +29,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await userService.getUserById(widget.userId).then((u) => setState(() {
           user = User(u.id, u.name, u.age, u.gender, u.bio, u.imageUrl);
           isCurrentUser = user!.id == authService.currentUser!.uid;
+          getIsMatched();
         }));
+  }
+
+  void getIsMatched() async {
+    if (user != null) {
+      await matchService.isMatched(user!.id).then((check) => setState(
+            () {
+              isMatched = check;
+            },
+          ));
+    }
   }
 
   @override
@@ -157,8 +169,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisSize: MainAxisSize.max,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).pop();
+                          onTap: () async {
+                            await matchService
+                                .unmatch(user!)
+                                .then((value) => Navigator.of(context).pop());
                           },
                           child: const ChoiceButton(
                             width: 80,
@@ -168,20 +182,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.clear_outlined,
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () async {
-                            await matchService
-                                .like(user!)
-                                .then((value) => Navigator.of(context).pop());
-                          },
-                          child: const ChoiceButton(
-                            width: 80,
-                            height: 80,
-                            iconSize: 30,
-                            iconColor: Colors.greenAccent,
-                            icon: Icons.favorite,
-                          ),
-                        )
+                        if (!isMatched)
+                          GestureDetector(
+                            onTap: () async {
+                              await matchService
+                                  .like(user!)
+                                  .then((value) => Navigator.of(context).pop());
+                            },
+                            child: const ChoiceButton(
+                              width: 80,
+                              height: 80,
+                              iconSize: 30,
+                              iconColor: Colors.greenAccent,
+                              icon: Icons.favorite,
+                            ),
+                          )
                       ],
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:dinter/models/models.dart';
+import 'package:dinter/screens/profile_screen.dart';
 import 'package:dinter/services/services.dart';
 import 'package:flutter/material.dart';
 
@@ -37,6 +38,34 @@ class _ChatScreenState extends State<ChatScreen> {
                 fontWeight: FontWeight.w800,
               ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_search_rounded),
+            onPressed: () {
+              User opponentUser =
+                  widget.match.user!.id == AuthService().currentUser!.uid
+                      ? widget.match.secondUser!
+                      : widget.match.user!;
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ProfileScreen(userId: opponentUser.id)));
+            },
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.person_off,
+              color: Colors.red,
+            ),
+            onPressed: () async {
+              User opponentUser =
+                  widget.match.user!.id == AuthService().currentUser!.uid
+                      ? widget.match.secondUser!
+                      : widget.match.user!;
+              await matchService
+                  .unmatch(opponentUser)
+                  .then((value) => Navigator.of(context).pop());
+            },
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -66,52 +95,61 @@ class _ChatScreenState extends State<ChatScreen> {
                     curve: Curves.easeOut,
                   );
                 });
-                return ListView.builder(
-                  controller: _scrollController,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    return SizedBox(
-                      width: MediaQuery.of(context).size.width / 2,
-                      child: Align(
-                        alignment: messages[index].senderId ==
-                                AuthService().currentUser!.uid
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Card(
-                          color: messages[index].senderId ==
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      return SizedBox(
+                        width: MediaQuery.of(context).size.width / 2,
+                        child: Align(
+                          alignment: messages[index].senderId ==
                                   AuthService().currentUser!.uid
-                              ? Colors.blue
-                              : Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Text(
-                              messages[index].message,
-                              style: TextStyle(
-                                color: messages[index].senderId ==
-                                        AuthService().currentUser!.uid
-                                    ? Colors.white
-                                    : Colors.blue,
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Card(
+                            elevation: 10,
+                            color: messages[index].senderId ==
+                                    AuthService().currentUser!.uid
+                                ? Colors.blue
+                                : Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Text(
+                                messages[index].message,
+                                style: TextStyle(
+                                  color: messages[index].senderId ==
+                                          AuthService().currentUser!.uid
+                                      ? Colors.white
+                                      : Colors.blue,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 );
               },
             )),
             Row(
               children: [
                 Container(
-                    width: MediaQuery.of(context).size.width - 50,
-                    color: Colors.grey[300],
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    width: MediaQuery.of(context).size.width - 80,
                     child: TextField(
-                      controller: _messageController,
-                      decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.all(12.0),
-                          hintText: "Nhập"),
-                    )),
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20.0),
+                              borderSide: const BorderSide(color: Colors.grey)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20.0),
+                              borderSide: const BorderSide(color: Colors.blue)),
+                          hintText: "Nhập",
+                        ))),
                 IconButton(
                     onPressed: () async {
                       if (_messageController.text.isEmpty) return;

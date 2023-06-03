@@ -39,7 +39,7 @@ class _AddPicScreenState extends State<AddPicScreen> {
 
   Widget showImage() {
     if (imageFile != null) {
-      return Image.file(imageFile!);
+      return SizedBox(height: 300, child: Image.file(imageFile!));
     } else {
       return const Text("No image");
     }

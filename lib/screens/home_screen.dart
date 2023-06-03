@@ -15,15 +15,17 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   List<User> users = [];
   final UserService userService = UserService();
   final MatchService matchService = MatchService();
-  final controller = SwipableStackController();
+  final _swipeController = SwipableStackController();
   @override
   void initState() {
-    getUsers();
     super.initState();
+
+    getUsers();
   }
 
   void getUsers() async {
@@ -31,6 +33,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       users.addAll(userList!);
     });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+    _swipeController.dispose();
   }
 
   @override
@@ -45,6 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
         ),
         actions: [
+          IconButton(
+              onPressed: () {
+                getUsers();
+              },
+              icon: const Icon(Icons.restore)),
           IconButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -62,64 +76,58 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.person)),
         ],
       ),
-      body: Column(
-        children: [
-          if (users.isNotEmpty)
-            SwipableCard(
-              users: users,
-              controller: controller,
+      body: Stack(children: [
+        Column(
+          children: [
+            if (users.isNotEmpty)
+              SwipableCard(
+                users: users,
+                controller: _swipeController,
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: CircularProgressIndicator(),
+              ),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 60),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      _swipeController.next(
+                          swipeDirection: SwipeDirection.left);
+                    },
+                    child: const ChoiceButton(
+                      width: 80,
+                      height: 80,
+                      iconSize: 30,
+                      iconColor: Colors.red,
+                      icon: Icons.clear_outlined,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      _swipeController.next(
+                          swipeDirection: SwipeDirection.right);
+                    },
+                    child: const ChoiceButton(
+                      width: 80,
+                      height: 80,
+                      iconSize: 30,
+                      iconColor: Colors.greenAccent,
+                      icon: Icons.favorite,
+                    ),
+                  )
+                ],
+              ),
             )
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: CircularProgressIndicator(),
-            ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 60),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    // if (currentUserIndex < users.length - 1) {
-                    //   setState(() {
-                    //     currentUserIndex = currentUserIndex + 1;
-                    //   });
-                    // }
-                    controller.next(swipeDirection: SwipeDirection.left);
-                  },
-                  child: const ChoiceButton(
-                    width: 80,
-                    height: 80,
-                    iconSize: 30,
-                    iconColor: Colors.red,
-                    icon: Icons.clear_outlined,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () async {
-                    // if (currentUserIndex < users.length - 1) {
-                    //   await matchService.like(users[currentUserIndex]);
-                    //   setState(() {
-                    //     currentUserIndex = currentUserIndex + 1;
-                    //   });
-                    // }
-                    controller.next(swipeDirection: SwipeDirection.right);
-                  },
-                  child: const ChoiceButton(
-                    width: 80,
-                    height: 80,
-                    iconSize: 30,
-                    iconColor: Colors.greenAccent,
-                    icon: Icons.favorite,
-                  ),
-                )
-              ],
-            ),
-          )
-        ],
-      ),
+          ],
+        ),
+      ]),
     );
   }
 }
@@ -157,6 +165,7 @@ class _SwipableCardState extends State<SwipableCard> {
               await matchService.like(widget.users[index]);
             } else if (direction == SwipeDirection.left) {
               // Handle left swipe
+              await matchService.unmatch(widget.users[index]);
               return;
             }
           },
